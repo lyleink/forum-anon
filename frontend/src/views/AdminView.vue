@@ -478,14 +478,11 @@ const stats = ref({
 const recentFeedbacks = ref<any[]>([]);
 
 const navigateTo = (page: string) => {
-    if (page === 'analytics' || page === 'settings') {
-        alert(`${page === 'analytics' ? '数据统计' : '系统设置'}功能正在开发中...`);
-        return;
-    }
-
     const routeMap: Record<string, string> = {
         feedback: "/admin/feedback",
         users: "/admin/users",
+        analytics: "/admin/analytics",
+        settings: "/admin/settings",
     };
 
     const routePath = routeMap[page];
@@ -493,7 +490,7 @@ const navigateTo = (page: string) => {
     if (routePath) {
         router.push(routePath);
     } else {
-        alert(`功能开发中: ${page} 管理`);
+        alert(`页面未找到: ${page}`);
     }
 };
 

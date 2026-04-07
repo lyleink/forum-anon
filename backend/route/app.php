@@ -16,6 +16,7 @@ Route::group('api', function () {
 
     Route::get('users', 'UserManage/index');
     Route::get('users/export', 'UserManage/export');
+    Route::get('users/:id/export', 'UserManage/exportSingle');
     Route::post('users', 'UserManage/save');
     Route::put('users/:id', 'UserManage/update');
     Route::delete('users/:id', 'UserManage/delete');
@@ -25,6 +26,7 @@ Route::group('api', function () {
     Route::get('feedbacks', 'Feedback/index');
     Route::get('feedbacks/export', 'Feedback/export');
     Route::get('feedbacks/:id', 'Feedback/read');
+    Route::get('feedbacks/:id/export', 'Feedback/exportSingle');
     Route::put('feedbacks/:id/status', 'Feedback/updateStatus');
     Route::put('feedbacks/:id/notes', 'Feedback/updateNotes');
     Route::delete('feedbacks/:id', 'Feedback/delete');

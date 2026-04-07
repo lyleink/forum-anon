@@ -9,6 +9,8 @@ import AdminView from "./views/AdminView.vue";
 import FeedbackManagement from "./views/FeedbackManagement.vue";
 import FeedbackDetail from "./views/FeedbackDetail.vue";
 import UserManagement from "./views/UserManagement.vue";
+import AnalyticsView from "./views/AnalyticsView.vue";
+import SettingsView from "./views/SettingsView.vue";
 
 // 定义路由
 const routes = [
@@ -55,6 +57,24 @@ const routes = [
         meta: {
             requiresAuth: true,
             title: "用户管理",
+        },
+    },
+    {
+        path: "/admin/analytics",
+        name: "Analytics",
+        component: AnalyticsView,
+        meta: {
+            requiresAuth: true,
+            title: "数据统计",
+        },
+    },
+    {
+        path: "/admin/settings",
+        name: "Settings",
+        component: SettingsView,
+        meta: {
+            requiresAuth: true,
+            title: "系统设置",
         },
     },
     {

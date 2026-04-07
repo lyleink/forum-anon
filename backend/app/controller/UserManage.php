@@ -150,15 +150,79 @@ class UserManage extends BaseController
     {
         $users = User::order('id', 'desc')->select();
 
-        $csv = "ID,用户名,邮箱,角色,状态,创建时间\n";
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'ID');
+        $sheet->setCellValue('B1', '用户名');
+        $sheet->setCellValue('C1', '邮箱');
+        $sheet->setCellValue('D1', '角色');
+        $sheet->setCellValue('E1', '状态');
+        $sheet->setCellValue('F1', '创建时间');
+
+        $row = 2;
         foreach ($users as $user) {
-            $csv .= "{$user->id},{$user->username},{$user->email},{$user->role},{$user->status},{$user->created_at}\n";
+            $sheet->setCellValue('A' . $row, $user->id);
+            $sheet->setCellValue('B' . $row, $user->username);
+            $sheet->setCellValue('C' . $row, $user->email ?? '');
+            $sheet->setCellValue('D' . $row, $user->role);
+            $sheet->setCellValue('E' . $row, $user->status);
+            $sheet->setCellValue('F' . $row, $user->created_at);
+            $row++;
         }
 
-        response($csv, 200, [
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="users_' . date('YmdHis') . '.csv"',
-        ])->send();
-        exit;
+        foreach (range('A', 'F') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'users_' . date('YmdHis') . '.xlsx';
+        $filepath = runtime_path() . $filename;
+        $writer->save($filepath);
+
+        return response()->file($filepath, [
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function exportSingle($id)
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return json(['code' => 404, 'msg' => '用户不存在', 'data' => null]);
+        }
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', '字段');
+        $sheet->setCellValue('B1', '值');
+        $sheet->setCellValue('A2', 'ID');
+        $sheet->setCellValue('B2', $user->id);
+        $sheet->setCellValue('A3', '用户名');
+        $sheet->setCellValue('B3', $user->username);
+        $sheet->setCellValue('A4', '邮箱');
+        $sheet->setCellValue('B4', $user->email ?? '');
+        $sheet->setCellValue('A5', '角色');
+        $sheet->setCellValue('B5', $user->role);
+        $sheet->setCellValue('A6', '状态');
+        $sheet->setCellValue('B6', $user->status);
+        $sheet->setCellValue('A7', '创建时间');
+        $sheet->setCellValue('B7', $user->created_at);
+        $sheet->setCellValue('A8', '更新时间');
+        $sheet->setCellValue('B8', $user->updated_at);
+
+        foreach (range('A', 'B') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'user_' . $user->username . '_' . date('YmdHis') . '.xlsx';
+        $filepath = runtime_path() . $filename;
+        $writer->save($filepath);
+
+        return response()->file($filepath, [
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 }

@@ -393,6 +393,7 @@ import {
     updateFeedbackStatus,
     updateFeedbackNotes,
     deleteFeedback as apiDeleteFeedback,
+    exportFeedback as apiExportFeedback,
 } from "../api/feedbacks";
 import { logout } from "../api/auth";
 
@@ -600,8 +601,19 @@ const cancelNote = () => {
     showNoteForm.value = false;
 };
 
-const exportFeedback = () => {
-    alert("导出功能开发中");
+const exportFeedback = async () => {
+    try {
+        const blob: any = await apiExportFeedback(feedbackId.value);
+        const url = window.URL.createObjectURL(new Blob([blob]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `feedback_${feedbackId.value}_${Date.now()}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } catch (e) {
+        alert("导出失败");
+    }
 };
 
 const printFeedback = () => {

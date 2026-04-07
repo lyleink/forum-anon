@@ -197,17 +197,116 @@ class Feedback extends BaseController
     {
         $feedbacks = FeedbackModel::order("id", "desc")->select();
 
-        $csv = "ID,分类,内容,状态,提交者,创建时间\n";
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', 'ID');
+        $sheet->setCellValue('B1', '分类');
+        $sheet->setCellValue('C1', '内容');
+        $sheet->setCellValue('D1', '状态');
+        $sheet->setCellValue('E1', '提交者');
+        $sheet->setCellValue('F1', '创建时间');
+
+        $row = 2;
         foreach ($feedbacks as $fb) {
-            $content = str_replace(["\n", "\r", ","], " ", $fb->content);
-            $csv .= "{$fb->id},{$fb->category},\"{$content}\",{$fb->status},{$fb->author},{$fb->created_at}\n";
+            $sheet->setCellValue('A' . $row, $fb->id);
+            $sheet->setCellValue('B' . $row, $fb->category);
+            $sheet->setCellValue('C' . $row, str_replace(["\r\n", "\r", "\n"], " ", $fb->content));
+            $sheet->setCellValue('D' . $row, $fb->status);
+            $sheet->setCellValue('E' . $row, $fb->author ?? '匿名');
+            $sheet->setCellValue('F' . $row, $fb->created_at);
+            $row++;
         }
 
-        response($csv, 200, [
-            "Content-Type" => "text/csv",
-            "Content-Disposition" =>
-                'attachment; filename="feedbacks_' . date("YmdHis") . '.csv"',
-        ])->send();
-        exit();
+        foreach (range('A', 'F') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'feedbacks_' . date('YmdHis') . '.xlsx';
+        $filepath = runtime_path() . $filename;
+        $writer->save($filepath);
+
+        return response()->file($filepath, [
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function exportSingle($id)
+    {
+        $feedback = FeedbackModel::with('statusHistory')->find($id);
+        if (!$feedback) {
+            return json(['code' => 404, 'msg' => '反馈不存在', 'data' => null]);
+        }
+
+        $statusMap = [
+            'pending' => '待处理',
+            'in-progress' => '处理中',
+            'resolved' => '已解决',
+        ];
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $sheet->setCellValue('A1', '字段');
+        $sheet->setCellValue('B1', '值');
+
+        $row = 2;
+        $fields = [
+            '反馈ID' => $feedback->id,
+            '分类' => $feedback->category,
+            '内容' => $feedback->content,
+            '状态' => $statusMap[$feedback->status] ?? $feedback->status,
+            '提交者' => $feedback->author ?? '匿名',
+            '创建时间' => $feedback->created_at,
+            '更新时间' => $feedback->updated_at,
+        ];
+
+        if ($feedback->notes) {
+            $fields['处理备注'] = $feedback->notes;
+            $fields['备注时间'] = $feedback->notes_time ?? '';
+        }
+
+        foreach ($fields as $label => $value) {
+            $sheet->setCellValue('A' . $row, $label);
+            $sheet->setCellValue('B' . $row, $value);
+            $row++;
+        }
+
+        // Status history
+        $historyRows = $feedback->statusHistory ?: [];
+        if (!empty($historyRows)) {
+            $row++;
+            $sheet->setCellValue('A' . $row, '状态历史');
+            $sheet->mergeCells('A' . $row . ':B' . $row);
+            $row++;
+            $sheet->setCellValue('A' . $row, '序号');
+            $sheet->setCellValue('B' . $row, '状态 / 描述 / 时间');
+            $row++;
+
+            $idx = 1;
+            foreach ($historyRows as $h) {
+                $statusText = $statusMap[$h['status']] ?? $h['status'];
+                $desc = $h['description'] ?? '';
+                $time = $h['created_at'] ?? '';
+                $sheet->setCellValue('A' . $row, $idx);
+                $sheet->setCellValue('B' . $row, "【{$statusText}】 {$desc} ({$time})");
+                $row++;
+                $idx++;
+            }
+        }
+
+        foreach (range('A', 'B') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'feedback_' . $feedback->id . '_' . date('YmdHis') . '.xlsx';
+        $filepath = runtime_path() . $filename;
+        $writer->save($filepath);
+
+        return response()->file($filepath, [
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 }

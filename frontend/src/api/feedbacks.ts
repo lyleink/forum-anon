@@ -27,3 +27,7 @@ export function deleteFeedback(id: number) {
 export function exportFeedbacks() {
   return request.get('/feedbacks/export', { responseType: 'blob' })
 }
+
+export function exportFeedback(id: number) {
+  return request.get(`/feedbacks/${id}/export`, { responseType: 'blob' })
+}
